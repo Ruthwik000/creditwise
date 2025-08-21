@@ -1,0 +1,132 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-dark-border;
+  }
+  
+  body {
+    @apply bg-dark-bg text-gray-100 antialiased selection:bg-accent-blue/30;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@layer components {
+  /* Modern Glass Cards */
+  .glass-card {
+    @apply bg-gradient-to-br from-dark-card/90 to-dark-elevated/80 backdrop-blur-xl border border-dark-border/30 rounded-2xl shadow-2xl relative overflow-hidden;
+  }
+  
+  .glass-card::before {
+    content: '';
+    @apply absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none;
+  }
+
+  .glass-card-hover {
+    @apply glass-card transition-all duration-300 hover:scale-[1.02] hover:shadow-glow-md hover:border-accent-blue/30;
+  }
+
+  /* Modern Buttons */
+  .btn-primary {
+    @apply bg-gradient-to-r from-accent-blue to-accent-blue-light hover:from-accent-blue-light hover:to-accent-blue text-white font-semibold px-8 py-3 rounded-xl transition-all duration-300 hover:shadow-glow-md hover:scale-105 active:scale-95 relative overflow-hidden;
+  }
+
+  .btn-primary::before {
+    content: '';
+    @apply absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300;
+  }
+  
+  .btn-secondary {
+    @apply bg-dark-surface/80 hover:bg-dark-elevated border border-dark-border hover:border-dark-muted text-gray-200 font-medium px-6 py-3 rounded-xl transition-all duration-300 hover:shadow-lg backdrop-blur-sm;
+  }
+
+  .btn-ghost {
+    @apply text-gray-300 hover:text-white hover:bg-dark-surface/50 px-4 py-2 rounded-lg transition-all duration-200;
+  }
+
+  /* Modern Score Indicators */
+  .score-green {
+    @apply text-accent-green-light bg-gradient-to-r from-accent-green/20 to-accent-green-light/10 border border-accent-green/30 backdrop-blur-sm;
+  }
+  
+  .score-yellow {
+    @apply text-accent-yellow-light bg-gradient-to-r from-accent-yellow/20 to-accent-yellow-light/10 border border-accent-yellow/30 backdrop-blur-sm;
+  }
+  
+  .score-red {
+    @apply text-accent-red-light bg-gradient-to-r from-accent-red/20 to-accent-red-light/10 border border-accent-red/30 backdrop-blur-sm;
+  }
+
+  /* Modern Input Fields */
+  .input-modern {
+    @apply bg-dark-surface/50 border border-dark-border/50 rounded-xl px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-accent-blue/50 focus:border-accent-blue/50 transition-all duration-200 backdrop-blur-sm;
+  }
+
+  /* Gradient Text */
+  .gradient-text {
+    @apply bg-gradient-to-r from-accent-blue to-accent-purple bg-clip-text text-transparent;
+  }
+
+  /* Modern Scrollbar */
+  .scrollbar-modern {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(59, 130, 246, 0.3) transparent;
+  }
+
+  .scrollbar-modern::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .scrollbar-modern::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-modern::-webkit-scrollbar-thumb {
+    background: rgba(59, 130, 246, 0.3);
+    border-radius: 3px;
+  }
+
+  .scrollbar-modern::-webkit-scrollbar-thumb:hover {
+    background: rgba(59, 130, 246, 0.5);
+  }
+
+  /* Floating Elements */
+  .floating {
+    @apply animate-float;
+  }
+
+  /* Glow Effects */
+  .glow-blue {
+    @apply shadow-glow-md;
+  }
+
+  .glow-pulse {
+    @apply animate-glow;
+  }
+
+  /* Modern Grid Pattern */
+  .grid-pattern {
+    background-image: 
+      linear-gradient(rgba(59, 130, 246, 0.1) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(59, 130, 246, 0.1) 1px, transparent 1px);
+    background-size: 50px 50px;
+  }
+
+  /* Status Indicators */
+  .status-online {
+    @apply w-3 h-3 bg-accent-green rounded-full animate-pulse shadow-glow-sm;
+  }
+
+  .status-warning {
+    @apply w-3 h-3 bg-accent-yellow rounded-full animate-pulse;
+  }
+
+  .status-error {
+    @apply w-3 h-3 bg-accent-red rounded-full animate-pulse;
+  }
+}
