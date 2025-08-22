@@ -1,12 +1,16 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { Link, useNavigate } from 'react-router-dom'
-import { Search, User, LogOut, Settings, Github } from 'lucide-react'
+import { Search, User, LogOut, Settings, Github, Bookmark } from 'lucide-react'
 import { motion } from 'framer-motion'
 
 const Header = ({ variant = 'dashboard', showSearch = false, searchTerm = '', onSearchChange }) => {
   const [isScrolled, setIsScrolled] = useState(false)
   const [showDropdown, setShowDropdown] = useState(false)
   const navigate = useNavigate()
+  const triggerRef = useRef(null)
+  const menuRef = useRef(null)
+  const [menuStyle, setMenuStyle] = useState({})
 
   useEffect(() => {
     const handleScroll = () => {
@@ -16,11 +20,45 @@ const Header = ({ variant = 'dashboard', showSearch = false, searchTerm = '', on
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
+  // Position the dropdown when opened so it can be portaled above other content
+  useEffect(() => {
+    if (!showDropdown) return
+    const update = () => {
+      const btn = triggerRef.current
+      if (!btn) return
+      const rect = btn.getBoundingClientRect()
+      const menuWidth = 224 // tailwind w-56
+      const left = rect.right - menuWidth
+      setMenuStyle({ position: 'absolute', top: rect.bottom + window.scrollY + 8, left: Math.max(8, left + window.scrollX), width: menuWidth })
+    }
+    update()
+    window.addEventListener('resize', update)
+    window.addEventListener('scroll', update, true)
+    return () => {
+      window.removeEventListener('resize', update)
+      window.removeEventListener('scroll', update, true)
+    }
+  }, [showDropdown])
+
+  // Close on outside click
+  useEffect(() => {
+    const handleClick = (e) => {
+      if (!showDropdown) return
+      const menuEl = menuRef.current
+      const btn = triggerRef.current
+      if (menuEl && !menuEl.contains(e.target) && btn && !btn.contains(e.target)) {
+        setShowDropdown(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [showDropdown])
+
   const headerClass = variant === 'landing' 
     ? `fixed top-0 w-full z-50 transition-all duration-500 ${
         isScrolled ? 'bg-dark-bg/90 backdrop-blur-xl border-b border-dark-border/30 shadow-2xl' : 'bg-transparent'
       }`
-    : 'bg-gradient-to-r from-[#0a0b0f]/95 via-[#111318]/95 to-[#1a1d24]/95 backdrop-blur-xl border-b border-white/[0.1] shadow-lg'
+  : 'bg-gradient-to-r from-[#0a0b0f]/95 via-[#111318]/95 to-[#1a1d24]/95 backdrop-blur-xl border-b border-white/[0.1] shadow-lg z-50'
 
   return (
     <header className={headerClass}>
@@ -136,6 +174,7 @@ const Header = ({ variant = 'dashboard', showSearch = false, searchTerm = '', on
             ) : (
               <div className="relative">
                 <button
+                  ref={triggerRef}
                   onClick={() => setShowDropdown(!showDropdown)}
                   className="relative group flex items-center space-x-3 p-3 rounded-2xl hover:bg-dark-surface/50 transition-all duration-300 border border-transparent hover:border-accent-blue/20"
                 >
@@ -159,16 +198,22 @@ const Header = ({ variant = 'dashboard', showSearch = false, searchTerm = '', on
                   </div>
                 </button>
 
-                {showDropdown && (
+                {showDropdown && createPortal(
                   <motion.div
+                    ref={menuRef}
                     initial={{ opacity: 0, y: -10, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                    className="absolute right-0 mt-3 w-56 bg-gradient-to-br from-dark-surface/95 via-dark-elevated/90 to-dark-surface/95 backdrop-blur-2xl rounded-2xl border border-dark-border/50 shadow-2xl shadow-accent-blue/10 py-3"
+                    style={menuStyle}
+                    className="w-56 bg-gradient-to-br from-dark-surface/95 via-dark-elevated/90 to-dark-surface/95 backdrop-blur-2xl rounded-2xl border border-dark-border/50 shadow-2xl shadow-accent-blue/10 py-3 z-[9999]"
                   >
                     {/* Tech pattern background */}
                     <div className="absolute inset-0 rounded-2xl bg-[radial-gradient(circle_at_center,rgba(59,130,246,0.05)_1px,transparent_1px)] bg-[length:8px_8px]"></div>
                     
+                    <button onClick={() => { window.location.href = '/watchlist' }} className="relative w-full px-4 py-3 text-left hover:bg-accent-blue/10 flex items-center space-x-3 transition-all duration-200 group">
+                      <Bookmark className="w-4 h-4 text-gray-400 group-hover:text-accent-blue transition-colors flex-shrink-0 self-center" />
+                      <span className="text-gray-200 group-hover:text-white">Watchlist</span>
+                    </button>
                     <button className="relative w-full px-4 py-3 text-left hover:bg-accent-blue/10 flex items-center space-x-3 transition-all duration-200 group">
                       <Settings className="w-4 h-4 text-gray-400 group-hover:text-accent-blue transition-colors" />
                       <span className="text-gray-200 group-hover:text-white">Settings</span>
@@ -183,7 +228,7 @@ const Header = ({ variant = 'dashboard', showSearch = false, searchTerm = '', on
                       <LogOut className="w-4 h-4 text-gray-400 group-hover:text-accent-red transition-colors" />
                       <span className="text-gray-200 group-hover:text-accent-red">Logout</span>
                     </button>
-                  </motion.div>
+                  </motion.div>, document.body
                 )}
               </div>
             )}
