@@ -99,101 +99,144 @@ const CompanyDashboard = () => {
           </Link>
         </motion.div>
 
-        {/* Company Header */}
+        {/* Company Hero — split 2-column */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-gradient-to-br from-white/[0.08] to-white/[0.03] backdrop-blur-xl border border-white/[0.1] rounded-3xl p-8 mb-8"
+          className="bg-gradient-to-br from-white/[0.04] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-3xl p-6 mb-8"
         >
-          <div className="flex items-start space-x-6">
-            <div className="w-24 h-24 rounded-2xl overflow-hidden bg-white/10 flex items-center justify-center">
-              {company.logo ? (
-                <img src={company.logo} alt={company.name} className="w-full h-full object-cover" />
-              ) : (
-                <Building2 className="w-12 h-12 text-white/60" />
-              )}
-            </div>
-            
-            <div className="flex-1">
-              <h1 className="text-3xl font-bold text-white mb-2">{company.name}</h1>
-              <p className="text-white/60 mb-4">{company.description}</p>
-              
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="flex items-center space-x-2 text-white/80">
-                  <Building2 className="w-4 h-4" />
-                  <span className="text-sm">{company.industry}</span>
-                </div>
-                <div className="flex items-center space-x-2 text-white/80">
-                  <MapPin className="w-4 h-4" />
-                  <span className="text-sm">{company.location}</span>
-                </div>
-                <div className="flex items-center space-x-2 text-white/80">
-                  <Users className="w-4 h-4" />
-                  <span className="text-sm">{company.employees}</span>
-                </div>
-                <div className="flex items-center space-x-2 text-white/80">
-                  <Calendar className="w-4 h-4" />
-                  <span className="text-sm">Founded {company.founded}</span>
+          <div className="flex flex-col sm:flex-row items-start justify-between gap-6">
+            {/* Left: Company Info */}
+            <div className="flex-1 flex items-start gap-6">
+              <div className="w-20 h-20 rounded-2xl overflow-hidden bg-white/6 flex items-center justify-center flex-shrink-0">
+                {company.logo ? (
+                  <img src={company.logo} alt={company.name} className="w-full h-full object-cover" />
+                ) : (
+                  <Building2 className="w-10 h-10 text-white/60" />
+                )}
+              </div>
+
+              <div className="flex-1">
+                <h1 className="text-2xl md:text-3xl font-bold text-white leading-tight">{company.name}</h1>
+                <p className="text-white/60 mt-2 max-w-2xl">{company.description}</p>
+
+                <div className="flex flex-wrap items-center gap-4 mt-4 text-white/70 text-sm">
+                  <div className="flex items-center gap-2"><Building2 className="w-4 h-4" />{company.industry}</div>
+                  <div className="flex items-center gap-2"><MapPin className="w-4 h-4" />{company.location}</div>
+                  <div className="flex items-center gap-2"><Users className="w-4 h-4" />{company.employees}</div>
+                  <div className="flex items-center gap-2"><Calendar className="w-4 h-4" />Founded {company.founded}</div>
                 </div>
               </div>
             </div>
 
-            <div className="text-right">
-              <div className="text-4xl font-bold text-white mb-2">{company.creditScore}</div>
-              <div className={`flex items-center space-x-2 ${getRiskColor(company.riskLevel)}`}>
+            {/* Right: Score Box */}
+            <div className="w-full sm:w-56 flex-shrink-0 text-left sm:text-right">
+              <div className="text-5xl md:text-6xl font-extrabold text-white">{company.creditScore}</div>
+              <div className={`inline-flex items-center gap-2 mt-3 px-3 py-2 rounded-full text-sm font-medium ${getRiskColor(company.riskLevel)} bg-white/3`}> 
                 {getRiskIcon(company.riskLevel)}
-                <span className="font-medium">{company.riskLevel} Risk</span>
+                <span>{company.riskLevel} Risk</span>
               </div>
+              <div className="text-white/50 text-sm mt-3">Last update: {company.lastUpdate}</div>
             </div>
+          </div>
+
+          {/* Quick Actions (top-right float) */}
+          <div className="mt-4 flex flex-wrap items-center gap-3 justify-start sm:justify-end">
+            <button className="bg-dark-surface/60 hover:bg-dark-elevated/80 text-white text-sm px-3 py-2 rounded-lg border border-white/[0.04]">Compare with Peers</button>
+            <button className="bg-dark-surface/60 hover:bg-dark-elevated/80 text-white text-sm px-3 py-2 rounded-lg border border-white/[0.04]">Watchlist</button>
+            <button className="bg-gradient-to-r from-indigo-500 to-rose-500 text-white text-sm px-3 py-2 rounded-lg">Export PDF</button>
           </div>
         </motion.div>
 
-        {/* Financial Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
-          {Object.entries(company.financialMetrics).map(([key, value], index) => (
-            <motion.div
-              key={key}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-              className="bg-gradient-to-br from-white/[0.08] to-white/[0.03] backdrop-blur-xl border border-white/[0.1] rounded-2xl p-6"
-            >
-              <div className="text-white/60 text-sm mb-2 capitalize">
-                {key.replace(/([A-Z])/g, ' $1').trim()}
-              </div>
-              <div className="text-2xl font-bold text-white">{value}</div>
-            </motion.div>
-          ))}
+        {/* Key Financial Ratios & KPIs — grouped 2x3 grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          {(() => {
+            const fm = company.financialMetrics || {}
+            const { debtToEquity, revenueGrowthPct, netIncome, volatility, newsSentiment } = fm
+            const liquidityPlaceholder = 'TBD'
+
+            const formatSentiment = (s) => {
+              if (!s) return 'N/A'
+              const pct = (s.score !== undefined && s.score !== null) ? `${Math.round(s.score * 100)}%` : null
+              return pct ? `${s.label} (${pct})` : s.label
+            }
+
+            const cards = [
+              { key: 'leverage', label: 'Debt-to-Equity', value: debtToEquity ?? '—', icon: <DollarSign className="w-5 h-5 text-white/60" /> },
+              { key: 'growth', label: 'Revenue Growth %', value: revenueGrowthPct ?? '—', icon: <TrendingUp className="w-5 h-5 text-white/60" /> },
+              { key: 'profit', label: 'Net Income', value: netIncome ?? '—', icon: <DollarSign className="w-5 h-5 text-white/60" /> },
+              { key: 'stability', label: 'Volatility', value: volatility ?? '—', icon: <AlertTriangle className="w-5 h-5 text-white/60" /> },
+              { key: 'sentiment', label: 'News Sentiment', value: formatSentiment(newsSentiment), icon: <TrendingDown className="w-5 h-5 text-white/60" /> },
+              { key: 'liquidity', label: 'Liquidity (Cash Flow)', value: liquidityPlaceholder, icon: <DollarSign className="w-5 h-5 text-white/60" /> }
+            ]
+
+            return cards.map((c, index) => (
+              <motion.div
+                key={c.key}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.06 }}
+                className="bg-gradient-to-br from-white/[0.03] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 flex flex-col justify-center"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <div className="text-white/60 text-sm">{c.label}</div>
+                  <div>{c.icon}</div>
+                </div>
+                <div className="text-2xl md:text-3xl font-bold text-white">{c.value}</div>
+                <div className="text-white/50 text-xs mt-2">{c.key === 'liquidity' ? 'Placeholder — add cash flow/covers' : ''}</div>
+              </motion.div>
+            ))
+          })()}
         </div>
 
-        {/* Charts and Activity */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Credit Score Chart */}
+        {/* Charts and Activity — Chart left, Why this score on right (shifted down), Recent Activity full-width below */}
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {/* Chart column (left) */}
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-semibold text-white">Credit Score Trend</h3>
+              <div className="flex items-center gap-2">
+                {['1M','6M','1Y','5Y'].map((t) => (
+                  <button key={t} className="text-sm px-3 py-1 rounded-md bg-white/[0.03] hover:bg-white/[0.06]">{t}</button>
+                ))}
+              </div>
+            </div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              <ChartCard title="" data={company.creditHistory} type="area" />
+            </motion.div>
+          </div>
+
+          {/* Why this score? (right) — shifted down to appear below the top of the chart */}
+          <div className="mt-6 lg:mt-0 lg:pt-16">
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="bg-gradient-to-br from-white/[0.03] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-4 sm:p-6">
+              <h4 className="text-lg font-semibold text-white mb-2">Why this score?</h4>
+              <p className="text-white/60">Score decreased due to lower sentiment (-5%) and higher volatility. Positive net income partially offset these risks.</p>
+
+              <div className="mt-4 grid grid-cols-2 gap-4">
+                <div className="text-sm text-white/60">Top contributors:</div>
+                <div className="text-sm text-white">Sentiment (-5%), Volatility (+), Net Income (+)</div>
+              </div>
+            </motion.div>
+          </div>
+
+          {/* Recent Activity — full width below, spans both columns */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-          >
-            <ChartCard
-              title="Credit Score Trend"
-              data={company.creditHistory}
-              type="line"
-            />
-          </motion.div>
-
-          {/* Recent Activity */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="bg-gradient-to-br from-white/[0.08] to-white/[0.03] backdrop-blur-xl border border-white/[0.1] rounded-3xl p-6"
+            className="col-span-2 bg-gradient-to-br from-white/[0.03] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-3xl p-4 sm:p-6"
           >
             <h3 className="text-xl font-semibold text-white mb-6">Recent Activity</h3>
             <div className="space-y-4">
               {company.recentActivity.map((activity, index) => (
                 <div key={index} className="flex items-center justify-between p-4 bg-white/[0.03] rounded-xl">
                   <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-indigo-500/20 rounded-lg flex items-center justify-center">
+                    <div className="w-10 h-10 bg-indigo-500/12 rounded-lg flex items-center justify-center">
                       {activity.type === 'payment' && <DollarSign className="w-5 h-5 text-indigo-400" />}
                       {activity.type === 'credit_check' && <TrendingUp className="w-5 h-5 text-emerald-400" />}
                       {activity.type === 'application' && <Building2 className="w-5 h-5 text-yellow-400" />}

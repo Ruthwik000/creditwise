@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { Link, useNavigate } from 'react-router-dom'
 import { Mail, Lock, Eye, EyeOff, ArrowRight, Sparkles } from 'lucide-react'
 
+
 // Animation variants
 const containerVariants = {
   hidden: { opacity: 0, y: 20 },
@@ -32,16 +33,30 @@ const Login = () => {
     password: ''
   })
   const navigate = useNavigate()
+  const [error, setError] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    console.log('Login form submitted')
-    navigate('/dashboard')
+    setError('')
+    setIsLoading(true)
+    // Mock sign-in flow for local development (no Firebase)
+    setTimeout(() => {
+      // rudimentary validation
+      if (!formData.email || !formData.password) {
+        setError('Please enter email and password')
+        setIsLoading(false)
+        return
+      }
+      setIsLoading(false)
+      navigate('/dashboard')
+    }, 600)
   }
 
   const handleGoogleAuth = () => {
-    console.log('Google auth clicked')
-    navigate('/dashboard')
+  // Mock Google flow (no external auth)
+  console.log('Mock Google auth clicked')
+  navigate('/dashboard')
   }
 
   return (
@@ -109,7 +124,7 @@ const Login = () => {
           className="relative bg-gradient-to-br from-white/[0.08] to-white/[0.03] backdrop-blur-xl border border-white/[0.1] rounded-3xl p-8 shadow-2xl"
         >
           {/* Gradient overlay */}
-          <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/[0.03] via-transparent to-rose-500/[0.03] rounded-3xl"></div>
+          <div className="absolute inset-0 pointer-events-none bg-gradient-to-br from-indigo-500/[0.03] via-transparent to-rose-500/[0.03] rounded-3xl"></div>
 
           {/* Header */}
           <motion.div variants={itemVariants} className="relative text-center mb-8">
@@ -191,6 +206,7 @@ const Login = () => {
             <button
               type="submit"
               className="w-full bg-gradient-to-r from-indigo-500 to-rose-500 hover:from-indigo-600 hover:to-rose-600 text-white font-semibold py-4 rounded-xl transition-all duration-300 hover:shadow-lg hover:shadow-indigo-500/25 flex items-center justify-center space-x-2"
+              style={{ boxShadow: '0 10px 20px rgba(75, 75, 75, 0.2)' }}
             >
               <span>Sign In</span>
               <ArrowRight className="w-5 h-5" />

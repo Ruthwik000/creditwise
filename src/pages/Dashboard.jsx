@@ -168,7 +168,7 @@ const Dashboard = () => {
           <div className="bg-white/[0.05] border border-white/[0.1] rounded-xl p-6 backdrop-blur-sm relative overflow-hidden group hover:shadow-glow-sm transition-all duration-300">
             <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-br from-indigo-500/20 to-transparent rounded-bl-3xl"></div>
             <div className="relative">
-              <div className="text-3xl font-bold text-white mb-2">24</div>
+              <div className="text-3xl font-bold text-white mb-2">50</div>
               <div className="text-sm text-gray-400 mb-2">Companies Tracked</div>
               <div className="flex items-center space-x-2">
                 <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>

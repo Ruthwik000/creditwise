@@ -14,18 +14,34 @@ const Signup = () => {
     password: '',
     confirmPassword: ''
   })
+  const [error, setError] = useState('')
   const navigate = useNavigate()
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    console.log('Signup form submitted')
-    // Direct navigation to dashboard
-    navigate('/dashboard')
+    setError('')
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match')
+      return
+    }
+    setIsLoading(true)
+    // Mock signup flow for local development (no Firebase)
+    setTimeout(() => {
+      if (!formData.email || !formData.password || !formData.name) {
+        setError('Please fill all required fields')
+        setIsLoading(false)
+        return
+      }
+      // optionally save to localStorage or a mock store here
+      setIsLoading(false)
+      navigate('/dashboard')
+    }, 700)
   }
 
   const handleGoogleAuth = () => {
-    console.log('Google auth clicked')
-    navigate('/dashboard')
+    // reuse existing Google flow or import signInWithPopup + googleProvider if desired
+  // Mock Google flow
+  navigate('/dashboard')
   }
 
   const containerVariants = {
@@ -113,7 +129,7 @@ const Signup = () => {
           className="relative bg-gradient-to-br from-white/[0.08] to-white/[0.03] backdrop-blur-xl border border-white/[0.1] rounded-3xl p-8 shadow-2xl"
         >
           {/* Gradient overlay */}
-          <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/[0.03] via-transparent to-rose-500/[0.03] rounded-3xl"></div>
+          <div className="absolute inset-0 pointer-events-none bg-gradient-to-br from-indigo-500/[0.03] via-transparent to-rose-500/[0.03] rounded-3xl"></div>
           
           {/* Header */}
           <motion.div variants={itemVariants} className="relative text-center mb-8">
@@ -257,11 +273,13 @@ const Signup = () => {
 
             <button
               type="submit"
+              disabled={isLoading}
               className="w-full bg-gradient-to-r from-indigo-500 to-rose-500 hover:from-indigo-600 hover:to-rose-600 text-white font-semibold py-4 rounded-xl transition-all duration-300 hover:shadow-lg hover:shadow-indigo-500/25 flex items-center justify-center space-x-2"
             >
-              <span>Create Account</span>
+              <span>{isLoading ? 'Creating...' : 'Create Account'}</span>
               <ArrowRight className="w-5 h-5" />
             </button>
+            {error && <div className="text-sm text-red-400 mt-2">{error}</div>}
           </motion.form>
 
           {/* Divider */}

@@ -21,6 +21,7 @@ A professional dark-themed React frontend for a credit intelligence platform bui
 - **React Router** for navigation
 - **Lucide React** for icons
 - **Firebase** (ready for integration)
+ - **Authentication**: Local mock auth flows (Firebase removed)
 
 ## Quick Start
 
@@ -51,7 +52,7 @@ src/
 │   ├── Login.jsx       # Authentication page
 │   ├── Dashboard.jsx   # Portfolio dashboard
 │   └── CompanyDashboard.jsx # Company details
-├── firebase/           # Firebase configuration
+├── (optional) firebase/           # Firebase configuration (removed)
 └── App.jsx            # Main app component
 ```
 
@@ -66,12 +67,9 @@ src/
   - Yellow `#facc15` (watch/neutral)
   - Red `#ef4444` (risk/poor scores)
 
-## Firebase Setup
+## Auth
 
-1. Create a Firebase project at [console.firebase.google.com](https://console.firebase.google.com)
-2. Enable Authentication and Firestore
-3. Update `src/firebase/config.js` with your Firebase config
-4. Uncomment the Firebase initialization code
+This project currently uses local mock auth flows for Login and Signup. If you want to integrate a backend or Firebase later, add your auth logic and config.
 
 ## Available Scripts
 

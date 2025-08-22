@@ -75,8 +75,8 @@ const Landing = () => {
         </HeroGeometric>
       </section>
 
-      {/* Features Section */}
-      <section className="relative py-20 px-4 bg-gradient-to-b from-[#030303] via-[#0a0a0a] to-[#111111] overflow-hidden">
+  {/* Features Section */}
+  <section id="features" className="relative py-20 px-4 bg-gradient-to-b from-[#030303] via-[#0a0a0a] to-[#111111] overflow-hidden">
         {/* Background Elements */}
         <div className="absolute inset-0 opacity-30">
           <div className="absolute top-20 left-10 w-32 h-32 bg-gradient-to-r from-indigo-500/10 to-transparent rounded-full blur-2xl"></div>

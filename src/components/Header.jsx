@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Search, User, LogOut, Settings } from 'lucide-react'
+import { Search, User, LogOut, Settings, Github } from 'lucide-react'
 import { motion } from 'framer-motion'
 
 const Header = ({ variant = 'dashboard', showSearch = false, searchTerm = '', onSearchChange }) => {
@@ -109,18 +109,29 @@ const Header = ({ variant = 'dashboard', showSearch = false, searchTerm = '', on
           <div className="flex items-center space-x-6">
             {variant === 'landing' ? (
               <>
-                <Link to="/login" className="relative group px-6 py-3 bg-dark-surface/60 hover:bg-dark-elevated/80 border border-dark-border/50 hover:border-accent-blue/30 rounded-xl transition-all duration-300 backdrop-blur-sm">
-                  <span className="text-gray-200 group-hover:text-white font-medium">Login</span>
-                  <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-accent-blue/10 to-accent-purple/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                </Link>
-                
-                <Link to="/login" className="relative group px-6 py-3 bg-gradient-to-r from-accent-blue via-accent-purple to-accent-blue-light hover:from-accent-blue-light hover:via-accent-blue hover:to-accent-purple rounded-xl transition-all duration-500 shadow-glow-sm hover:shadow-glow-md border border-white/10 hover:border-white/20">
-                  <span className="text-white font-semibold relative z-10">Sign Up</span>
-                  <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                  
-                  {/* Tech pattern overlay */}
-                  <div className="absolute inset-0 rounded-xl bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.1)_1px,transparent_1px)] bg-[length:6px_6px] opacity-0 group-hover:opacity-30 transition-opacity duration-500"></div>
-                </Link>
+                <button
+                  onClick={() => {
+                    const el = document.getElementById('features')
+                    if (el) {
+                      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                    } else {
+                      // navigate to landing with hash if not present on this page
+                      window.location.href = '/#features'
+                    }
+                  }}
+                  className="relative group px-4 py-3 bg-dark-surface/60 hover:bg-dark-elevated/80 border border-dark-border/50 hover:border-accent-blue/30 rounded-xl transition-all duration-300 backdrop-blur-sm flex items-center space-x-2"
+                >
+                  <span className="text-gray-200 group-hover:text-white font-medium">Features</span>
+                </button>
+
+                <a
+                  href="https://github.com/Ruthwik000/creditwise"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="relative group p-3 bg-transparent hover:bg-dark-surface/40 rounded-xl transition-colors duration-200 border border-transparent hover:border-accent-blue/20"
+                >
+                  <Github className="w-5 h-5 text-white" />
+                </a>
               </>
             ) : (
               <div className="relative">
