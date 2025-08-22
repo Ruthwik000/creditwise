@@ -9,22 +9,136 @@ import { companiesById } from '../lib/sampleData'
 const CompanyDashboard = () => {
   const [company, setCompany] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [apiData, setApiData] = useState(null)
 
   const { id } = useParams()
 
-  // Use shared sample data for development
+  // Credit score to rating mapping (based on common credit rating scales)
+  const scoreToRating = (score) => {
+    if (score >= 0.9) return { rating: 'AAA', risk: 'Low' }
+    if (score >= 0.8) return { rating: 'AA', risk: 'Low' }
+    if (score >= 0.7) return { rating: 'A', risk: 'Low' }
+    if (score >= 0.6) return { rating: 'BBB', risk: 'Medium' }
+    if (score >= 0.5) return { rating: 'BB', risk: 'Medium' }
+    if (score >= 0.4) return { rating: 'B', risk: 'High' }
+    if (score >= 0.3) return { rating: 'CCC', risk: 'High' }
+    if (score >= 0.2) return { rating: 'CC', risk: 'High' }
+    return { rating: 'C', risk: 'High' }
+  }
+
+  // Format large numbers to millions/billions
+  const formatLargeNumber = (num) => {
+    if (!num || num === 0) return '0'
+    
+    const absNum = Math.abs(num)
+    const sign = num < 0 ? '-' : ''
+    
+    if (absNum >= 1e12) {
+      return `${sign}$${(absNum / 1e12).toFixed(1)}T`
+    } else if (absNum >= 1e9) {
+      return `${sign}$${(absNum / 1e9).toFixed(1)}B`
+    } else if (absNum >= 1e6) {
+      return `${sign}$${(absNum / 1e6).toFixed(1)}M`
+    } else if (absNum >= 1e3) {
+      return `${sign}$${(absNum / 1e3).toFixed(1)}K`
+    } else {
+      return `${sign}$${absNum.toFixed(0)}`
+    }
+  }
+
+  // Format percentage with proper sign
+  const formatPercentage = (num) => {
+    if (num === null || num === undefined) return 'N/A'
+    const sign = num >= 0 ? '+' : ''
+    return `${sign}${num.toFixed(1)}%`
+  }
+
+  // Format debt to equity ratio
+  const formatDebtToEquity = (ratio) => {
+    if (ratio === null || ratio === undefined) return 'N/A'
+    return ratio.toFixed(2)
+  }
+
+  // Format volatility
+  const formatVolatility = (vol) => {
+    if (vol === null || vol === undefined) return 'N/A'
+    if (vol <= 1) return 'Low'
+    if (vol <= 3) return 'Medium'
+    return 'High'
+  }
+
+  // Format news sentiment
+  const formatNewsSentiment = (sentiment) => {
+    if (sentiment === null || sentiment === undefined) return 'N/A'
+    
+    let label, percentage
+    if (sentiment >= 0.6) {
+      label = 'Positive'
+    } else if (sentiment >= 0.4) {
+      label = 'Neutral'
+    } else if (sentiment >= 0.2) {
+      label = 'Mixed'
+    } else {
+      label = 'Negative'
+    }
+    
+    percentage = Math.round(sentiment * 100)
+    return `${label} (${percentage}%)`
+  }
 
   useEffect(() => {
-    // Simulate API call
     const fetchCompanyData = async () => {
       setLoading(true)
-      // Simulate network delay
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-  const companyId = Number(id) || 1
-  const companyData = companiesById[companyId] || null
-  setCompany(companyData)
-      setLoading(false)
+      try {
+        const companyId = Number(id) || 1
+        const companyData = companiesById[companyId] || null
+        
+        if (!companyData) {
+          setCompany(null)
+          setLoading(false)
+          return
+        }
+
+        const { name, ticker } = companyData
+        const encodedName = encodeURIComponent(name)
+        
+        const response = await fetch(`https://credit-wise.onrender.com/predict/${encodedName}/${ticker}`)
+        const result = await response.json()
+        
+        console.log('API Response:', result)
+        setApiData(result)
+
+        // Update company data with API results
+        const updatedCompany = {
+          ...companyData,
+          creditScore: Math.round(result.prediction * 1000), // Convert to score out of 1000
+          riskLevel: scoreToRating(result.prediction).risk,
+          creditRating: scoreToRating(result.prediction).rating,
+          financialMetrics: {
+            ...companyData.financialMetrics,
+            debtToEquity: formatDebtToEquity(result.details['Debt/Equity']),
+            revenueGrowthPct: formatPercentage(result.details['Revenue Growth %']),
+            netIncome: formatLargeNumber(result.details['Net Income']),
+            volatility: formatVolatility(result.details['Volatility']),
+            newsSentiment: {
+              label: formatNewsSentiment(result.details['News Sentiment']),
+              score: result.details['News Sentiment']
+            }
+          },
+          explanation: result.explanation,
+          lastUpdate: new Date().toLocaleDateString()
+        }
+
+        setCompany(updatedCompany)
+      } catch (error) {
+        console.log('Error fetching data:', error.message)
+        // Fallback to original company data
+        const companyId = Number(id) || 1
+        const companyData = companiesById[companyId] || null
+        setCompany(companyData)
+      } finally {
+        setLoading(false)
+      }
     }
 
     fetchCompanyData()
@@ -131,7 +245,12 @@ const CompanyDashboard = () => {
 
             {/* Right: Score Box */}
             <div className="w-full sm:w-56 flex-shrink-0 text-left sm:text-right">
-              <div className="text-5xl md:text-6xl font-extrabold text-white">{company.creditScore}</div>
+              <div className="flex flex-col sm:items-end">
+                <div className="text-5xl md:text-6xl font-extrabold text-white">{company.creditScore}</div>
+                {company.creditRating && (
+                  <div className="text-2xl font-bold text-white/80 mt-1">{company.creditRating}</div>
+                )}
+              </div>
               <div className={`inline-flex items-center gap-2 mt-3 px-3 py-2 rounded-full text-sm font-medium ${getRiskColor(company.riskLevel)} bg-white/3`}> 
                 {getRiskIcon(company.riskLevel)}
                 <span>{company.riskLevel} Risk</span>
@@ -157,8 +276,7 @@ const CompanyDashboard = () => {
 
             const formatSentiment = (s) => {
               if (!s) return 'N/A'
-              const pct = (s.score !== undefined && s.score !== null) ? `${Math.round(s.score * 100)}%` : null
-              return pct ? `${s.label} (${pct})` : s.label
+              return typeof s === 'string' ? s : s.label || 'N/A'
             }
 
             const cards = [
@@ -183,21 +301,24 @@ const CompanyDashboard = () => {
                   <div>{c.icon}</div>
                 </div>
                 <div className="text-2xl md:text-3xl font-bold text-white">{c.value}</div>
-                <div className="text-white/50 text-xs mt-2">{c.key === 'liquidity' ? 'Placeholder — add cash flow/covers' : ''}</div>
+                <div className="text-white/50 text-xs mt-2">
+                  {c.key === 'liquidity' ? 'Placeholder — add cash flow/covers' : ''}
+                  {apiData && c.key !== 'liquidity' ? 'Live data' : ''}
+                </div>
               </motion.div>
             ))
           })()}
         </div>
 
         {/* Charts and Activity — Chart left, Why this score on right (shifted down), Recent Activity full-width below */}
-  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* Chart column (left) */}
           <div>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xl font-semibold text-white">Credit Score Trend</h3>
               <div className="flex items-center gap-2">
                 {['1M','6M','1Y','5Y'].map((t) => (
-                  <button key={t} className="text-sm px-3 py-1 rounded-md bg-white/[0.03] hover:bg-white/[0.06]">{t}</button>
+                  <button key={t} className="text-sm px-3 py-1 rounded-md bg-white/[0.03] hover:bg-white/[0.06] text-white/70 hover:text-white">{t}</button>
                 ))}
               </div>
             </div>
@@ -215,12 +336,21 @@ const CompanyDashboard = () => {
           <div className="mt-6 lg:mt-0 lg:pt-16">
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="bg-gradient-to-br from-white/[0.03] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-4 sm:p-6">
               <h4 className="text-lg font-semibold text-white mb-2">Why this score?</h4>
-              <p className="text-white/60">Score decreased due to lower sentiment (-5%) and higher volatility. Positive net income partially offset these risks.</p>
+              <p className="text-white/60 mb-4">
+                {company.explanation || 'Score decreased due to lower sentiment (-5%) and higher volatility. Positive net income partially offset these risks.'}
+              </p>
 
-              <div className="mt-4 grid grid-cols-2 gap-4">
-                <div className="text-sm text-white/60">Top contributors:</div>
-                <div className="text-sm text-white">Sentiment (-5%), Volatility (+), Net Income (+)</div>
-              </div>
+              {apiData && (
+                <div className="mt-4 space-y-2">
+                  <div className="text-sm text-white/60">Key factors from analysis:</div>
+                  <div className="text-sm text-white grid grid-cols-1 gap-1">
+                    <div>• Debt/Equity: {formatDebtToEquity(apiData.details['Debt/Equity'])}</div>
+                    <div>• Revenue Growth: {formatPercentage(apiData.details['Revenue Growth %'])}</div>
+                    <div>• Volatility: {formatVolatility(apiData.details['Volatility'])}</div>
+                    <div>• News Sentiment: {formatNewsSentiment(apiData.details['News Sentiment'])}</div>
+                  </div>
+                </div>
+              )}
             </motion.div>
           </div>
 
@@ -229,11 +359,11 @@ const CompanyDashboard = () => {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className="col-span-2 bg-gradient-to-br from-white/[0.03] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-3xl p-4 sm:p-6"
+            className="col-span-1 md:col-span-2 bg-gradient-to-br from-white/[0.03] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-3xl p-4 sm:p-6"
           >
             <h3 className="text-xl font-semibold text-white mb-6">Recent Activity</h3>
             <div className="space-y-4">
-              {company.recentActivity.map((activity, index) => (
+              {company.recentActivity?.map((activity, index) => (
                 <div key={index} className="flex items-center justify-between p-4 bg-white/[0.03] rounded-xl">
                   <div className="flex items-center space-x-3">
                     <div className="w-10 h-10 bg-indigo-500/12 rounded-lg flex items-center justify-center">
@@ -250,7 +380,9 @@ const CompanyDashboard = () => {
                     <div className="text-white font-semibold">{activity.amount}</div>
                   )}
                 </div>
-              ))}
+              )) || (
+                <div className="text-white/60 text-center py-8">No recent activity available</div>
+              )}
             </div>
           </motion.div>
         </div>
