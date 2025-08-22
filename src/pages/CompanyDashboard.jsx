@@ -5,6 +5,7 @@ import { ArrowLeft, Building2, TrendingUp, TrendingDown, AlertTriangle, CheckCir
 import Header from '../components/Header'
 import ChartCard from '../components/ChartCard'
 import { companiesById } from '../lib/sampleData'
+import { isInWatchlist, addToWatchlist, removeFromWatchlist, toggleWatchlist } from '../lib/watchlist'
 
 const CompanyDashboard = () => {
   const [company, setCompany] = useState(null)
@@ -12,6 +13,7 @@ const CompanyDashboard = () => {
   const [apiData, setApiData] = useState(null)
 
   const { id } = useParams()
+  const [inWatchlist, setInWatchlist] = useState(false)
 
   // Credit score to rating mapping (based on common credit rating scales)
   const scoreToRating = (score) => {
@@ -262,7 +264,9 @@ const CompanyDashboard = () => {
           {/* Quick Actions (top-right float) */}
           <div className="mt-4 flex flex-wrap items-center gap-3 justify-start sm:justify-end">
             <button className="bg-dark-surface/60 hover:bg-dark-elevated/80 text-white text-sm px-3 py-2 rounded-lg border border-white/[0.04]">Compare with Peers</button>
-            <button className="bg-dark-surface/60 hover:bg-dark-elevated/80 text-white text-sm px-3 py-2 rounded-lg border border-white/[0.04]">Watchlist</button>
+            <button onClick={() => { const newList = toggleWatchlist(company.id); setInWatchlist(newList.includes(company.id)); }} className={`text-sm px-3 py-2 rounded-lg border ${inWatchlist ? 'bg-rose-600 text-white border-rose-500' : 'bg-dark-surface/60 text-white border-white/[0.04]'}`}>
+              {inWatchlist ? 'Remove from Watchlist' : 'Add to Watchlist'}
+            </button>
             <button className="bg-gradient-to-r from-indigo-500 to-rose-500 text-white text-sm px-3 py-2 rounded-lg">Export PDF</button>
           </div>
         </motion.div>
@@ -313,7 +317,7 @@ const CompanyDashboard = () => {
         {/* Charts and Activity — Chart left, Why this score on right (shifted down), Recent Activity full-width below */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* Chart column (left) */}
-          <div>
+          <div className="order-1">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xl font-semibold text-white">Credit Score Trend</h3>
               <div className="flex items-center gap-2">
@@ -332,8 +336,8 @@ const CompanyDashboard = () => {
             </motion.div>
           </div>
 
-          {/* Why this score? (right) — shifted down to appear below the top of the chart */}
-          <div className="mt-6 lg:mt-0 lg:pt-16">
+          {/* Why this score? (right) — on mobile moved below Recent Activity */}
+          <div className="order-3 md:order-2 mt-6 lg:mt-0 lg:pt-16">
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="bg-gradient-to-br from-white/[0.03] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-4 sm:p-6">
               <h4 className="text-lg font-semibold text-white mb-2">Why this score?</h4>
               <p className="text-white/60 mb-4">
@@ -359,7 +363,7 @@ const CompanyDashboard = () => {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className="col-span-1 md:col-span-2 bg-gradient-to-br from-white/[0.03] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-3xl p-4 sm:p-6"
+            className="col-span-2 order-2 md:order-3 bg-gradient-to-br from-white/[0.03] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-3xl p-4 sm:p-6"
           >
             <h3 className="text-xl font-semibold text-white mb-6">Recent Activity</h3>
             <div className="space-y-4">

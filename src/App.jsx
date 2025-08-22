@@ -6,6 +6,7 @@ import Login from './pages/Login'
 import Signup from './pages/Signup'
 import Dashboard from './pages/Dashboard'
 import CompanyDashboard from './pages/CompanyDashboard'
+import Watchlist from './pages/Watchlist'
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
             <Route path="/signup" element={<Signup />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/companydashboard/:id" element={<CompanyDashboard />} />
+            <Route path="/watchlist" element={<Watchlist />} />
           </Routes>
         </AnimatePresence>
       </div>
