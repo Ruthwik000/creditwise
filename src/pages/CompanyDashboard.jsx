@@ -6,6 +6,8 @@ import Header from '../components/Header'
 import ChartCard from '../components/ChartCard'
 import { companiesById } from '../lib/sampleData'
 import { isInWatchlist, addToWatchlist, removeFromWatchlist, toggleWatchlist } from '../lib/watchlist'
+import jsPDF from 'jspdf'
+import html2canvas from 'html2canvas'
 
 const CompanyDashboard = () => {
   const [company, setCompany] = useState(null)
@@ -82,11 +84,29 @@ const CompanyDashboard = () => {
     )
   }
 
+  const handleExportPdf = () => {
+    const input = document.getElementById('company-dashboard');
+    html2canvas(input, {
+      useCORS: true,
+      scale: 2,
+      backgroundColor: '#030303',
+      height: input.scrollHeight,
+      windowHeight: input.scrollHeight
+    }).then((canvas) => {
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`company-dashboard-${company.name}.pdf`);
+    });
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#030303] via-[#0a0a0a] to-[#111111]">
       <Header />
       
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div id="company-dashboard" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Back Button */}
         <motion.div
           initial={{ opacity: 0, x: -20 }}
@@ -149,7 +169,7 @@ const CompanyDashboard = () => {
             <button onClick={() => { const newList = toggleWatchlist(company.id); setInWatchlist(newList.includes(company.id)); }} className={`text-sm px-3 py-2 rounded-lg border ${inWatchlist ? 'bg-rose-600 text-white border-rose-500' : 'bg-dark-surface/60 text-white border-white/[0.04]'}`}>
               {inWatchlist ? 'Remove from Watchlist' : 'Add to Watchlist'}
             </button>
-            <button className="bg-gradient-to-r from-indigo-500 to-rose-500 text-white text-sm px-3 py-2 rounded-lg">Export PDF</button>
+            <button onClick={handleExportPdf} className="bg-gradient-to-r from-indigo-500 to-rose-500 text-white text-sm px-3 py-2 rounded-lg">Export PDF</button>
           </div>
         </motion.div>
 
