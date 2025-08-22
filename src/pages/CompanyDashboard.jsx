@@ -1,17 +1,86 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { Link, useParams } from 'react-router-dom'
 import { ArrowLeft, Building2, TrendingUp, TrendingDown, AlertTriangle, CheckCircle, Users, DollarSign, Calendar, MapPin } from 'lucide-react'
 import Header from '../components/Header'
 import ChartCard from '../components/ChartCard'
 import { companiesById } from '../lib/sampleData'
+import { isInWatchlist, toggleWatchlist } from '../lib/watchlist'
+import jsPDF from 'jspdf'
+import html2canvas from 'html2canvas'
 
 const CompanyDashboard = () => {
   const [company, setCompany] = useState(null)
   const [loading, setLoading] = useState(true)
   const [apiData, setApiData] = useState(null)
-
   const { id } = useParams()
+  const [inWatchlist, setInWatchlist] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
+  const dashboardRef = useRef(null)
+  const chartContainerRef = useRef(null)
+  const [chartWidth, setChartWidth] = useState(500)
+
+  useEffect(() => {
+    const chartContainer = chartContainerRef.current
+    if (!chartContainer) return
+
+    const resizeObserver = new ResizeObserver(entries => {
+      if (entries[0]) {
+        const width = entries[0].contentRect.width
+        setChartWidth(width)
+      }
+    })
+
+    resizeObserver.observe(chartContainer)
+
+    return () => resizeObserver.disconnect()
+  }, [])
+
+  const handleToggleWatchlist = () => {
+    toggleWatchlist(id)
+    setInWatchlist((prev) => !prev)
+  }
+
+  const handleExportPdf = () => {
+    if (!dashboardRef.current || !company) return
+
+    setIsExporting(true)
+
+    const dashboardElement = dashboardRef.current
+    const actionsElement = dashboardElement.querySelector('#dashboard-actions')
+    const backButtonElement = dashboardElement.querySelector('#back-button')
+
+    // Hide buttons before capture
+    if (actionsElement) actionsElement.style.visibility = 'hidden'
+    if (backButtonElement) backButtonElement.style.visibility = 'hidden'
+
+    html2canvas(dashboardElement, {
+      backgroundColor: '#030303',
+      scale: 2,
+      useCORS: true,
+    }).then((canvas) => {
+      const imgData = canvas.toDataURL('image/png')
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'px',
+        format: [canvas.width, canvas.height],
+      })
+      pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height)
+      pdf.save(`creditwise-dashboard-${company.name.toLowerCase().replace(/ /g, '-')}.pdf`)
+
+      // Show buttons again
+      if (actionsElement) actionsElement.style.visibility = 'visible'
+      if (backButtonElement) backButtonElement.style.visibility = 'visible'
+
+      setIsExporting(false)
+    }).catch(err => {
+      console.error("Error exporting PDF:", err)
+      // Ensure buttons are visible even if there is an error
+      if (actionsElement) actionsElement.style.visibility = 'visible'
+      if (backButtonElement) backButtonElement.style.visibility = 'visible'
+      setIsExporting(false)
+    })
+  }
 
   // Credit score to rating mapping (based on common credit rating scales)
   const scoreToRating = (score) => {
@@ -120,6 +189,7 @@ const CompanyDashboard = () => {
   useEffect(() => {
     const fetchCompanyData = async () => {
       setLoading(true)
+      setInWatchlist(isInWatchlist(id)) // Set watchlist status
       try {
         const companyId = Number(id) || 1
         const companyData = companiesById[companyId] || null
@@ -238,9 +308,10 @@ const CompanyDashboard = () => {
     <div className="min-h-screen bg-gradient-to-br from-[#030303] via-[#0a0a0a] to-[#111111]">
       <Header />
       
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" ref={dashboardRef}>
         {/* Back Button */}
         <motion.div
+          id="back-button"
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           className="mb-6"
@@ -301,10 +372,25 @@ const CompanyDashboard = () => {
           </div>
 
           {/* Quick Actions (top-right float) */}
-          <div className="mt-4 flex flex-wrap items-center gap-3 justify-start sm:justify-end">
+          <div id="dashboard-actions" className="mt-4 flex flex-wrap items-center gap-3 justify-start sm:justify-end">
             <button className="bg-dark-surface/60 hover:bg-dark-elevated/80 text-white text-sm px-3 py-2 rounded-lg border border-white/[0.04]">Compare with Peers</button>
-            <button className="bg-dark-surface/60 hover:bg-dark-elevated/80 text-white text-sm px-3 py-2 rounded-lg border border-white/[0.04]">Watchlist</button>
-            <button className="bg-gradient-to-r from-indigo-500 to-rose-500 text-white text-sm px-3 py-2 rounded-lg">Export PDF</button>
+            <button
+              onClick={handleToggleWatchlist}
+              className={`text-sm px-3 py-2 rounded-lg border transition-colors ${
+                inWatchlist
+                  ? 'bg-indigo-600/20 text-indigo-300 border-indigo-500/40 hover:bg-indigo-600/40'
+                  : 'bg-dark-surface/60 hover:bg-dark-elevated/80 text-white border-white/[0.04]'
+              }`}
+            >
+              {inWatchlist ? 'Remove from Watchlist' : 'Add to Watchlist'}
+            </button>
+            <button 
+              onClick={handleExportPdf} 
+              disabled={isExporting}
+              className="bg-gradient-to-r from-indigo-500 to-rose-500 text-white text-sm px-3 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isExporting ? 'Exporting...' : 'Export PDF'}
+            </button>
           </div>
         </motion.div>
 
@@ -371,8 +457,8 @@ const CompanyDashboard = () => {
               className="bg-gradient-to-br from-white/[0.03] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6"
             >
               {/* Credit Score Chart */}
-              <div className="h-64 relative">
-                <svg width="100%" height="100%" className="overflow-visible">
+              <div className="h-64 relative" ref={chartContainerRef}>
+                <svg width="100%" height="100%" viewBox={`0 0 ${chartWidth} 260`} className="overflow-visible">
                   <defs>
                     <linearGradient id="scoreGradient" x1="0%" y1="0%" x2="0%" y2="100%">
                       <stop offset="0%" stopColor="rgb(99, 102, 241)" stopOpacity="0.3" />
@@ -388,7 +474,6 @@ const CompanyDashboard = () => {
                     const padding = scoreRange * 0.1
                     
                     const chartHeight = 240
-                    const chartWidth = 500 // This will be scaled by SVG
                     
                     // Create points for the line
                     const points = data.map((item, index) => {
@@ -470,7 +555,7 @@ const CompanyDashboard = () => {
                           return (
                             <g key={`y-label-${index}`}>
                               <line
-                                x1="0"
+                                x1="-5"
                                 y1={yPos}
                                 x2={chartWidth}
                                 y2={yPos}
