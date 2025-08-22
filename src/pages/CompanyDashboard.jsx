@@ -373,7 +373,11 @@ const CompanyDashboard = () => {
 
           {/* Quick Actions (top-right float) */}
           <div id="dashboard-actions" className="mt-4 flex flex-wrap items-center gap-3 justify-start sm:justify-end">
-            <button className="bg-dark-surface/60 hover:bg-dark-elevated/80 text-white text-sm px-3 py-2 rounded-lg border border-white/[0.04]">Compare with Peers</button>
+            <Link to={`/CompanyDashboard/${id}/PeerComparison`}>
+              <button className="bg-dark-surface/60 hover:bg-dark-elevated/80 text-white text-sm px-3 py-2 rounded-lg border border-white/[0.04]">
+                Compare with Peers
+              </button>
+            </Link>
             <button
               onClick={handleToggleWatchlist}
               className={`text-sm px-3 py-2 rounded-lg border transition-colors ${

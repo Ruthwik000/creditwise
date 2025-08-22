@@ -7,6 +7,7 @@ import Signup from './pages/Signup'
 import Dashboard from './pages/Dashboard'
 import CompanyDashboard from './pages/CompanyDashboard'
 import Watchlist from './pages/Watchlist'
+import PeerComparisonPage from './pages/PeerComparison/PeerComparisonPage'
 
 function App() {
   return (
@@ -19,6 +20,7 @@ function App() {
             <Route path="/signup" element={<Signup />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/companydashboard/:id" element={<CompanyDashboard />} />
+            <Route path="/CompanyDashboard/:id/PeerComparison" element={<PeerComparisonPage />} />
             <Route path="/watchlist" element={<Watchlist />} />
           </Routes>
         </AnimatePresence>
