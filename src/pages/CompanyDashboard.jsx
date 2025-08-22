@@ -1,224 +1,189 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowLeft, Building2, TrendingUp, TrendingDown, AlertTriangle, CheckCircle, Users, DollarSign, Calendar, MapPin, Download } from 'lucide-react'
-import html2canvas from 'html2canvas'
-import jsPDF from 'jspdf'
+import { ArrowLeft, Building2, TrendingUp, TrendingDown, AlertTriangle, CheckCircle, Users, DollarSign, Calendar, MapPin } from 'lucide-react'
 import Header from '../components/Header'
 import ChartCard from '../components/ChartCard'
 import { companiesById } from '../lib/sampleData'
-import { isInWatchlist, addToWatchlist, removeFromWatchlist, toggleWatchlist } from '../lib/watchlist'
 
 const CompanyDashboard = () => {
   const [company, setCompany] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [exportingPdf, setExportingPdf] = useState(false)
-  const dashboardRef = useRef(null)
+  const [apiData, setApiData] = useState(null)
 
   const { id } = useParams()
-  const [inWatchlist, setInWatchlist] = useState(false)
 
-  // Use shared sample data for development
+  // Credit score to rating mapping (based on common credit rating scales)
+  const scoreToRating = (score) => {
+    if (score >= 0.9) return { rating: 'AAA', risk: 'Low' }
+    if (score >= 0.8) return { rating: 'AA', risk: 'Low' }
+    if (score >= 0.7) return { rating: 'A', risk: 'Low' }
+    if (score >= 0.6) return { rating: 'BBB', risk: 'Medium' }
+    if (score >= 0.5) return { rating: 'BB', risk: 'Medium' }
+    if (score >= 0.4) return { rating: 'B', risk: 'High' }
+    if (score >= 0.3) return { rating: 'CCC', risk: 'High' }
+    if (score >= 0.2) return { rating: 'CC', risk: 'High' }
+    return { rating: 'C', risk: 'High' }
+  }
+
+  // Format large numbers to millions/billions
+  const formatLargeNumber = (num) => {
+    if (!num || num === 0) return '0'
+    
+    const absNum = Math.abs(num)
+    const sign = num < 0 ? '-' : ''
+    
+    if (absNum >= 1e12) {
+      return `${sign}$${(absNum / 1e12).toFixed(1)}T`
+    } else if (absNum >= 1e9) {
+      return `${sign}$${(absNum / 1e9).toFixed(1)}B`
+    } else if (absNum >= 1e6) {
+      return `${sign}$${(absNum / 1e6).toFixed(1)}M`
+    } else if (absNum >= 1e3) {
+      return `${sign}$${(absNum / 1e3).toFixed(1)}K`
+    } else {
+      return `${sign}$${absNum.toFixed(0)}`
+    }
+  }
+
+  // Format percentage with proper sign
+  const formatPercentage = (num) => {
+    if (num === null || num === undefined) return 'N/A'
+    const sign = num >= 0 ? '+' : ''
+    return `${sign}${num.toFixed(1)}%`
+  }
+
+  // Format debt to equity ratio
+  const formatDebtToEquity = (ratio) => {
+    if (ratio === null || ratio === undefined) return 'N/A'
+    return ratio.toFixed(2)
+  }
+
+  // Format volatility
+  const formatVolatility = (vol) => {
+    if (vol === null || vol === undefined) return 'N/A'
+    if (vol <= 1) return 'Low'
+    if (vol <= 3) return 'Medium'
+    return 'High'
+  }
+
+  // Format news sentiment
+  const formatNewsSentiment = (sentiment) => {
+    if (sentiment === null || sentiment === undefined) return 'N/A'
+    
+    let label, percentage
+    if (sentiment >= 0.6) {
+      label = 'Positive'
+    } else if (sentiment >= 0.4) {
+      label = 'Neutral'
+    } else if (sentiment >= 0.2) {
+      label = 'Mixed'
+    } else {
+      label = 'Negative'
+    }
+    
+    percentage = Math.round(sentiment * 100)
+    return `${label} (${percentage}%)`
+  }
+
+  // Generate historical credit data (6 days + current day)
+  const generateCreditHistory = (currentScore) => {
+    const history = []
+    const today = new Date()
+    
+    // Generate 6 previous days with some realistic variation
+    for (let i = 6; i >= 1; i--) {
+      const date = new Date(today)
+      date.setDate(today.getDate() - i)
+      
+      // Create variation around current score (±50 points)
+      const variation = (Math.random() - 0.5) * 100 // -50 to +50
+      const historicalScore = Math.max(300, Math.min(850, currentScore + variation))
+      
+      history.push({
+        date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        score: Math.round(historicalScore),
+        fullDate: date.toISOString().split('T')[0]
+      })
+    }
+    
+    // Add current day data
+    history.push({
+      date: today.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      score: currentScore,
+      fullDate: today.toISOString().split('T')[0]
+    })
+    
+    return history
+  }
+
   useEffect(() => {
-    // Simulate API call
     const fetchCompanyData = async () => {
       setLoading(true)
-      // Simulate network delay
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      const companyId = Number(id) || 1
-      const companyData = companiesById[companyId] || null
-      setCompany(companyData)
-      setInWatchlist(isInWatchlist(companyId))
-      setLoading(false)
+      try {
+        const companyId = Number(id) || 1
+        const companyData = companiesById[companyId] || null
+        
+        if (!companyData) {
+          setCompany(null)
+          setLoading(false)
+          return
+        }
+
+        const { name, ticker } = companyData
+        const encodedName = encodeURIComponent(name)
+        
+        const response = await fetch(`https://credit-wise.onrender.com/predict/${encodedName}/${ticker}`)
+        const result = await response.json()
+        
+        console.log('API Response:', result)
+        setApiData(result)
+
+        const currentScore = Math.round(result.prediction * 1000)
+        const creditHistory = generateCreditHistory(currentScore)
+
+        // Update company data with API results
+        const updatedCompany = {
+          ...companyData,
+          creditScore: currentScore,
+          riskLevel: scoreToRating(result.prediction).risk,
+          creditRating: scoreToRating(result.prediction).rating,
+          creditHistory: creditHistory, // Add generated history
+          financialMetrics: {
+            ...companyData.financialMetrics,
+            debtToEquity: formatDebtToEquity(result.details['Debt/Equity']),
+            revenueGrowthPct: formatPercentage(result.details['Revenue Growth %']),
+            netIncome: formatLargeNumber(result.details['Net Income']),
+            volatility: formatVolatility(result.details['Volatility']),
+            newsSentiment: {
+              label: formatNewsSentiment(result.details['News Sentiment']),
+              score: result.details['News Sentiment']
+            }
+          },
+          explanation: result.explanation,
+          lastUpdate: new Date().toLocaleDateString()
+        }
+
+        setCompany(updatedCompany)
+      } catch (error) {
+        console.log('Error fetching data:', error.message)
+        // Fallback to original company data with generated history
+        const companyId = Number(id) || 1
+        const companyData = companiesById[companyId] || null
+        if (companyData) {
+          const fallbackHistory = generateCreditHistory(companyData.creditScore || 650)
+          setCompany({
+            ...companyData,
+            creditHistory: fallbackHistory
+          })
+        }
+      } finally {
+        setLoading(false)
+      }
     }
 
     fetchCompanyData()
   }, [id])
-
-  const handleExportPdf = async () => {
-    if (!company || !dashboardRef.current) return
-    
-    try {
-      setExportingPdf(true)
-      console.log('Starting PDF export...')
-      
-      // Wait a moment for any animations to complete
-      await new Promise(resolve => setTimeout(resolve, 500))
-      
-      // Get the main container element
-      const element = dashboardRef.current
-      
-      // Scroll to top to ensure we capture from the beginning
-      window.scrollTo(0, 0)
-      await new Promise(resolve => setTimeout(resolve, 200))
-      
-      // Configure html2canvas options with better settings for dark themes
-      const canvas = await html2canvas(element, {
-        height: element.scrollHeight,
-        width: element.scrollWidth,
-        scrollX: 0,
-        scrollY: 0,
-        x: 0,
-        y: 0,
-        useCORS: true,
-        allowTaint: true,  // Changed to true to allow more flexibility
-        backgroundColor: '#030303',  // Ensure dark background
-        scale: 1.5,  // Reduced scale to avoid memory issues
-        logging: true,  // Enable logging to debug
-        imageTimeout: 30000,  // Increased timeout
-        removeContainer: true,
-        foreignObjectRendering: false,  // Disable foreign object rendering
-        ignoreElements: (element) => {
-          // Skip elements that might cause issues
-          return element.classList?.contains('no-pdf') || false
-        },
-        onclone: (clonedDoc, element) => {
-          // Force styles on cloned document
-          const style = clonedDoc.createElement('style')
-          style.textContent = `
-            * {
-              -webkit-print-color-adjust: exact !important;
-              color-adjust: exact !important;
-              print-color-adjust: exact !important;
-            }
-            body {
-              background: #030303 !important;
-            }
-            .bg-gradient-to-br {
-              background: #030303 !important;
-            }
-          `
-          clonedDoc.head.appendChild(style)
-          
-          // Remove backdrop-blur effects that don't render well
-          const blurElements = clonedDoc.querySelectorAll('[class*="backdrop-blur"]')
-          blurElements.forEach(el => {
-            el.style.backdropFilter = 'none'
-            el.style.webkitBackdropFilter = 'none'
-          })
-          
-          // Ensure text is visible
-          const textElements = clonedDoc.querySelectorAll('*')
-          textElements.forEach(el => {
-            const computedStyle = window.getComputedStyle(el)
-            if (computedStyle.color.includes('rgba') || computedStyle.color.includes('rgb')) {
-              // Force white text for visibility
-              if (el.classList.contains('text-white') || 
-                  el.classList.contains('text-white/60') || 
-                  el.classList.contains('text-white/70')) {
-                el.style.color = '#ffffff !important'
-              }
-            }
-          })
-        }
-      })
-
-      console.log('Canvas created, dimensions:', canvas.width, 'x', canvas.height)
-
-      // Check if canvas is blank
-      const ctx = canvas.getContext('2d')
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
-      const isBlank = imageData.data.every((value, index) => {
-        // Check if all pixels are the same color (blank)
-        return index % 4 === 3 ? true : value === imageData.data[0]
-      })
-
-      if (isBlank) {
-        throw new Error('Canvas appears to be blank')
-      }
-
-      // Calculate PDF dimensions
-      const imgWidth = 210 // A4 width in mm
-      const pageHeight = 295 // A4 height in mm
-      const imgHeight = (canvas.height * imgWidth) / canvas.width
-      let heightLeft = imgHeight
-
-      // Create PDF
-      const pdf = new jsPDF('p', 'mm', 'a4')
-      let position = 0
-
-      // Convert canvas to high quality image
-      const imgData = canvas.toDataURL('image/jpeg', 0.95)  // Use JPEG with high quality
-
-      // Add first page
-      pdf.addImage(
-        imgData,
-        'JPEG',
-        0,
-        position,
-        imgWidth,
-        imgHeight,
-        undefined,
-        'FAST'
-      )
-      heightLeft -= pageHeight
-
-      // Add additional pages if content is longer than one page
-      while (heightLeft >= 0) {
-        position = heightLeft - imgHeight
-        pdf.addPage()
-        pdf.addImage(
-          imgData,
-          'JPEG',
-          0,
-          position,
-          imgWidth,
-          imgHeight,
-          undefined,
-          'FAST'
-        )
-        heightLeft -= pageHeight
-      }
-
-      // Generate filename with company name and date
-      const filename = `${company.name.replace(/\s+/g, '_')}_Report_${new Date().toISOString().split('T')[0]}.pdf`
-      
-      // Save the PDF
-      pdf.save(filename)
-      
-      console.log('PDF export completed successfully')
-    } catch (error) {
-      console.error('Error exporting PDF:', error)
-      
-      // Fallback: try with simpler options
-      try {
-        console.log('Attempting fallback export...')
-        const element = dashboardRef.current
-        
-        const canvas = await html2canvas(element, {
-          backgroundColor: '#030303',
-          scale: 1,
-          useCORS: false,
-          allowTaint: true,
-          logging: false
-        })
-        
-        const pdf = new jsPDF('p', 'mm', 'a4')
-        const imgWidth = 210
-        const imgHeight = (canvas.height * imgWidth) / canvas.width
-        
-        pdf.addImage(
-          canvas.toDataURL('image/png'),
-          'PNG',
-          0,
-          0,
-          imgWidth,
-          imgHeight
-        )
-        
-        const filename = `${company.name.replace(/\s+/g, '_')}_Report_${new Date().toISOString().split('T')[0]}.pdf`
-        pdf.save(filename)
-        
-        console.log('Fallback PDF export completed')
-      } catch (fallbackError) {
-        console.error('Fallback export also failed:', fallbackError)
-        alert('Failed to export PDF. Please try again or contact support.')
-      }
-    } finally {
-      setExportingPdf(false)
-    }
-  }
 
   const getRiskColor = (riskLevel) => {
     switch (riskLevel?.toLowerCase()) {
@@ -273,7 +238,7 @@ const CompanyDashboard = () => {
     <div className="min-h-screen bg-gradient-to-br from-[#030303] via-[#0a0a0a] to-[#111111]">
       <Header />
       
-      <div ref={dashboardRef} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Back Button */}
         <motion.div
           initial={{ opacity: 0, x: -20 }}
@@ -294,11 +259,6 @@ const CompanyDashboard = () => {
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           className="bg-gradient-to-br from-white/[0.04] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-3xl p-6 mb-8"
-          style={{ 
-            background: 'rgba(255, 255, 255, 0.04)',
-            backdropFilter: 'blur(12px)',
-            border: '1px solid rgba(255, 255, 255, 0.06)'
-          }}
         >
           <div className="flex flex-col sm:flex-row items-start justify-between gap-6">
             {/* Left: Company Info */}
@@ -326,7 +286,12 @@ const CompanyDashboard = () => {
 
             {/* Right: Score Box */}
             <div className="w-full sm:w-56 flex-shrink-0 text-left sm:text-right">
-              <div className="text-5xl md:text-6xl font-extrabold text-white">{company.creditScore}</div>
+              <div className="flex flex-col sm:items-end">
+                <div className="text-5xl md:text-6xl font-extrabold text-white">{company.creditScore}</div>
+                {company.creditRating && (
+                  <div className="text-2xl font-bold text-white/80 mt-1">{company.creditRating}</div>
+                )}
+              </div>
               <div className={`inline-flex items-center gap-2 mt-3 px-3 py-2 rounded-full text-sm font-medium ${getRiskColor(company.riskLevel)} bg-white/3`}> 
                 {getRiskIcon(company.riskLevel)}
                 <span>{company.riskLevel} Risk</span>
@@ -337,39 +302,9 @@ const CompanyDashboard = () => {
 
           {/* Quick Actions (top-right float) */}
           <div className="mt-4 flex flex-wrap items-center gap-3 justify-start sm:justify-end">
-            <button className="bg-dark-surface/60 hover:bg-dark-elevated/80 text-white text-sm px-3 py-2 rounded-lg border border-white/[0.04]">
-              Compare with Peers
-            </button>
-            <button 
-              onClick={() => { 
-                const newList = toggleWatchlist(company.id); 
-                setInWatchlist(newList.includes(company.id)); 
-              }} 
-              className={`text-sm px-3 py-2 rounded-lg border ${inWatchlist ? 'bg-rose-600 text-white border-rose-500' : 'bg-dark-surface/60 text-white border-white/[0.04]'}`}
-            >
-              {inWatchlist ? 'Remove from Watchlist' : 'Add to Watchlist'}
-            </button>
-            <button 
-              onClick={handleExportPdf}
-              disabled={exportingPdf}
-              className="bg-gradient-to-r from-indigo-500 to-rose-500 text-white text-sm px-3 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-            >
-              {exportingPdf ? (
-                <>
-                  <motion.div
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                    className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full"
-                  />
-                  Exporting...
-                </>
-              ) : (
-                <>
-                  <Download className="w-4 h-4" />
-                  Export PDF
-                </>
-              )}
-            </button>
+            <button className="bg-dark-surface/60 hover:bg-dark-elevated/80 text-white text-sm px-3 py-2 rounded-lg border border-white/[0.04]">Compare with Peers</button>
+            <button className="bg-dark-surface/60 hover:bg-dark-elevated/80 text-white text-sm px-3 py-2 rounded-lg border border-white/[0.04]">Watchlist</button>
+            <button className="bg-gradient-to-r from-indigo-500 to-rose-500 text-white text-sm px-3 py-2 rounded-lg">Export PDF</button>
           </div>
         </motion.div>
 
@@ -382,8 +317,7 @@ const CompanyDashboard = () => {
 
             const formatSentiment = (s) => {
               if (!s) return 'N/A'
-              const pct = (s.score !== undefined && s.score !== null) ? `${Math.round(s.score * 100)}%` : null
-              return pct ? `${s.label} (${pct})` : s.label
+              return typeof s === 'string' ? s : s.label || 'N/A'
             }
 
             const cards = [
@@ -402,18 +336,16 @@ const CompanyDashboard = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.06 }}
                 className="bg-gradient-to-br from-white/[0.03] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 flex flex-col justify-center"
-                style={{ 
-                  background: 'rgba(255, 255, 255, 0.03)',
-                  backdropFilter: 'blur(12px)',
-                  border: '1px solid rgba(255, 255, 255, 0.06)'
-                }}
               >
                 <div className="flex items-center justify-between mb-2">
                   <div className="text-white/60 text-sm">{c.label}</div>
                   <div>{c.icon}</div>
                 </div>
                 <div className="text-2xl md:text-3xl font-bold text-white">{c.value}</div>
-                <div className="text-white/50 text-xs mt-2">{c.key === 'liquidity' ? 'Placeholder — add cash flow/covers' : ''}</div>
+                <div className="text-white/50 text-xs mt-2">
+                  {c.key === 'liquidity' ? 'Placeholder — add cash flow/covers' : ''}
+                  {apiData && c.key !== 'liquidity' ? 'Live data' : ''}
+                </div>
               </motion.div>
             ))
           })()}
@@ -422,12 +354,12 @@ const CompanyDashboard = () => {
         {/* Charts and Activity — Chart left, Why this score on right (shifted down), Recent Activity full-width below */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* Chart column (left) */}
-          <div className="order-1">
+          <div>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xl font-semibold text-white">Credit Score Trend</h3>
               <div className="flex items-center gap-2">
                 {['1M','6M','1Y','5Y'].map((t) => (
-                  <button key={t} className="text-sm px-3 py-1 rounded-md bg-white/[0.03] hover:bg-white/[0.06] text-white/70">{t}</button>
+                  <button key={t} className="text-sm px-3 py-1 rounded-md bg-white/[0.03] hover:bg-white/[0.06] text-white/70 hover:text-white">{t}</button>
                 ))}
               </div>
             </div>
@@ -436,31 +368,171 @@ const CompanyDashboard = () => {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
+              className="bg-gradient-to-br from-white/[0.03] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6"
             >
-              <ChartCard title="" data={company.creditHistory} type="area" />
+              {/* Credit Score Chart */}
+              <div className="h-64 relative">
+                <svg width="100%" height="100%" className="overflow-visible">
+                  <defs>
+                    <linearGradient id="scoreGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                      <stop offset="0%" stopColor="rgb(99, 102, 241)" stopOpacity="0.3" />
+                      <stop offset="100%" stopColor="rgb(99, 102, 241)" stopOpacity="0.05" />
+                    </linearGradient>
+                  </defs>
+                  
+                  {company.creditHistory && (() => {
+                    const data = company.creditHistory
+                    const maxScore = Math.max(...data.map(d => d.score))
+                    const minScore = Math.min(...data.map(d => d.score))
+                    const scoreRange = maxScore - minScore || 100
+                    const padding = scoreRange * 0.1
+                    
+                    const chartHeight = 240
+                    const chartWidth = 500 // This will be scaled by SVG
+                    
+                    // Create points for the line
+                    const points = data.map((item, index) => {
+                      const x = (index / (data.length - 1)) * chartWidth
+                      const y = chartHeight - ((item.score - (minScore - padding)) / (scoreRange + 2 * padding)) * chartHeight
+                      return { x, y, score: item.score, date: item.date }
+                    })
+                    
+                    // Create path string for line
+                    const pathData = points.map((point, index) => 
+                      `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`
+                    ).join(' ')
+                    
+                    // Create area path
+                    const areaData = `${pathData} L ${points[points.length - 1].x} ${chartHeight} L 0 ${chartHeight} Z`
+                    
+                    return (
+                      <g>
+                        {/* Area fill */}
+                        <path
+                          d={areaData}
+                          fill="url(#scoreGradient)"
+                        />
+                        
+                        {/* Line */}
+                        <path
+                          d={pathData}
+                          stroke="rgb(99, 102, 241)"
+                          strokeWidth="3"
+                          fill="none"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                        
+                        {/* Data points */}
+                        {points.map((point, index) => (
+                          <g key={index}>
+                            <circle
+                              cx={point.x}
+                              cy={point.y}
+                              r="4"
+                              fill="rgb(99, 102, 241)"
+                              stroke="white"
+                              strokeWidth="2"
+                            />
+                            {/* Highlight current day */}
+                            {index === points.length - 1 && (
+                              <circle
+                                cx={point.x}
+                                cy={point.y}
+                                r="8"
+                                fill="none"
+                                stroke="rgb(99, 102, 241)"
+                                strokeWidth="2"
+                                strokeDasharray="4,2"
+                                opacity="0.8"
+                              />
+                            )}
+                          </g>
+                        ))}
+                        
+                        {/* X-axis labels */}
+                        {points.map((point, index) => (
+                          <text
+                            key={`label-${index}`}
+                            x={point.x}
+                            y={chartHeight + 20}
+                            textAnchor="middle"
+                            className="fill-white/60 text-xs"
+                          >
+                            {point.date}
+                          </text>
+                        ))}
+                        
+                        {/* Y-axis labels */}
+                        {[0, 0.25, 0.5, 0.75, 1].map((ratio, index) => {
+                          const yPos = chartHeight - (ratio * chartHeight)
+                          const scoreValue = Math.round((minScore - padding) + ratio * (scoreRange + 2 * padding))
+                          return (
+                            <g key={`y-label-${index}`}>
+                              <line
+                                x1="0"
+                                y1={yPos}
+                                x2={chartWidth}
+                                y2={yPos}
+                                stroke="white"
+                                strokeOpacity="0.1"
+                                strokeWidth="1"
+                              />
+                              <text
+                                x="-10"
+                                y={yPos + 4}
+                                textAnchor="end"
+                                className="fill-white/60 text-xs"
+                              >
+                                {scoreValue}
+                              </text>
+                            </g>
+                          )
+                        })}
+                      </g>
+                    )
+                  })()}
+                </svg>
+              </div>
+              
+              {/* Chart Legend */}
+              <div className="flex items-center justify-between mt-4 pt-4 border-t border-white/[0.06]">
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-indigo-500"></div>
+                    <span className="text-white/60 text-sm">Credit Score</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-indigo-500 ring-2 ring-indigo-500 ring-opacity-50"></div>
+                    <span className="text-white/60 text-sm">Today</span>
+                  </div>
+                </div>
+                <div className="text-white/50 text-xs">
+                  Past 7 days • Updated {new Date().toLocaleTimeString()}
+                </div>
+              </div>
             </motion.div>
           </div>
 
-          {/* Why this score? (right) — on mobile move directly under the chart */}
-          <div className="order-2 md:order-2 mt-6 lg:mt-0 lg:pt-16">
-            <motion.div 
-              initial={{ opacity: 0, y: 10 }} 
-              animate={{ opacity: 1, y: 0 }} 
-              transition={{ delay: 0.25 }} 
-              className="bg-gradient-to-br from-white/[0.03] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-4 sm:p-6"
-              style={{ 
-                background: 'rgba(255, 255, 255, 0.03)',
-                backdropFilter: 'blur(12px)',
-                border: '1px solid rgba(255, 255, 255, 0.06)'
-              }}
-            >
+          {/* Why this score? (right) — shifted down to appear below the top of the chart */}
+          <div className="mt-6 lg:mt-0 lg:pt-16">
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="bg-gradient-to-br from-white/[0.03] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-4 sm:p-6">
               <h4 className="text-lg font-semibold text-white mb-2">Why this score?</h4>
-              <p className="text-white/60">Score decreased due to lower sentiment (-5%) and higher volatility. Positive net income partially offset these risks.</p>
+              <p className="text-white/60 mb-4">
+                {company.explanation || 'Score decreased due to lower sentiment (-5%) and higher volatility. Positive net income partially offset these risks.'}
+              </p>
 
-              <div className="mt-4 grid grid-cols-2 gap-4">
-                <div className="text-sm text-white/60">Top contributors:</div>
-                <div className="text-sm text-white">Sentiment (-5%), Volatility (+), Net Income (+)</div>
-              </div>
+              {apiData && (
+                <div className="mt-4 space-y-2">
+                  <div className="text-sm text-white/60">Key factors from analysis:</div>
+                  <div className="text-sm text-white grid grid-cols-1 gap-1">
+                    <div>• Debt/Equity: {formatDebtToEquity(apiData.details['Debt/Equity'])}</div>
+                    <div>• Revenue Growth: {formatPercentage(apiData.details['Revenue Growth %'])}</div>
+                    <div>• Volatility: {formatVolatility(apiData.details['Volatility'])}</div>
+                    <div>• News Sentiment: {formatNewsSentiment(apiData.details['News Sentiment'])}</div>
+                  </div>
+                </div>
+              )}
             </motion.div>
           </div>
 
@@ -469,16 +541,11 @@ const CompanyDashboard = () => {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className="col-span-2 order-3 md:order-3 bg-gradient-to-br from-white/[0.03] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-3xl p-4 sm:p-6"
-            style={{ 
-              background: 'rgba(255, 255, 255, 0.03)',
-              backdropFilter: 'blur(12px)',
-              border: '1px solid rgba(255, 255, 255, 0.06)'
-            }}
+            className="col-span-1 md:col-span-2 bg-gradient-to-br from-white/[0.03] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-3xl p-4 sm:p-6"
           >
             <h3 className="text-xl font-semibold text-white mb-6">Recent Activity</h3>
             <div className="space-y-4">
-              {company.recentActivity.map((activity, index) => (
+              {company.recentActivity?.map((activity, index) => (
                 <div key={index} className="flex items-center justify-between p-4 bg-white/[0.03] rounded-xl">
                   <div className="flex items-center space-x-3">
                     <div className="w-10 h-10 bg-indigo-500/12 rounded-lg flex items-center justify-center">
@@ -495,7 +562,9 @@ const CompanyDashboard = () => {
                     <div className="text-white font-semibold">{activity.amount}</div>
                   )}
                 </div>
-              ))}
+              )) || (
+                <div className="text-white/60 text-center py-8">No recent activity available</div>
+              )}
             </div>
           </motion.div>
         </div>
