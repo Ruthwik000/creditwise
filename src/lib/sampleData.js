@@ -565,16 +565,16 @@ export const companies = rawCompanies.map((c, idx) => {
   const months = ['Jan','Feb','Mar','Apr','May','Jun'];
   const creditHistory = months.map((m, i) => ({ month: m, score: Math.max(500, creditScore - (5 * (5 - i))) }));
 
-  const debtToEquity = ((id % 10) / 10 + 0.2).toFixed(2);
-  const revenueGrowthPct = `${((id % 15) - 3)}%`;
-  const netIncome = (id % 3 === 0) ? `-$${(id * 120).toLocaleString()}` : `+$${(id * 220).toLocaleString()}`;
+  const debtToEquity = Number(((id % 10) / 10 + 0.2).toFixed(2));
+  const revenueGrowthPct = Number(((id % 15) - 3));
+  const netIncome = (id % 3 === 0) ? -(id * 120) : (id * 220);
   const volatility = ['Low','Medium','High'][id % 3];
   const sentimentScore = ((id * 11) % 101 - 50) / 100;
   const sentimentLabel = sentimentScore > 0.3 ? 'Positive' : sentimentScore < -0.3 ? 'Negative' : (sentimentScore === 0 ? 'Neutral' : 'Mixed');
 
   const recentActivity = [
-    { date: `2024-08-${String((id % 28) + 1).padStart(2,'0')}`, type: 'credit_check', description: 'Quarterly credit review', amount: null },
-    { date: `2024-07-${String((id % 28) + 2).padStart(2,'0')}`, type: 'payment', description: 'Scheduled payment', amount: `$${((id * 1500) % 200000).toLocaleString()}` }
+    { date: `2024-0${(id % 12) + 1}-15`, type: 'Earnings Report', description: `Q${(id % 4) + 1} earnings released.` },
+    { date: `2024-0${(id % 12) + 1}-20`, type: 'Product Launch', description: `New product for sector ${c.sector} launched.` },
   ];
 
   return {
@@ -589,7 +589,8 @@ export const companies = rawCompanies.map((c, idx) => {
     founded: String(c.founded || ''),
     employees: c.employees || '',
     location: c.hq || '',
-    revenue: c.revenue || '',
+    revenue: Number((c.revenue || '').replace(/[^0-9.-]+/g,"")) || 0,
+    marketCap: Number((c.marketCap || '').replace(/[^0-9.-]+/g,"")) || 0,
     description: c.description || '',
     lastUpdate: `${(id % 7) + 1} days ago`,
     creditHistory,
