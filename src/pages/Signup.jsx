@@ -17,7 +17,7 @@ const Signup = () => {
   const [error, setError] = useState('')
   const navigate = useNavigate()
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async(e) => {
     e.preventDefault()
     setError('')
     if (formData.password !== formData.confirmPassword) {
@@ -26,16 +26,21 @@ const Signup = () => {
     }
     setIsLoading(true)
     // Mock signup flow for local development (no Firebase)
-    setTimeout(() => {
       if (!formData.email || !formData.password || !formData.name) {
         setError('Please fill all required fields')
         setIsLoading(false)
         return
       }
+      try {
+      const user = await signup(formData.email, formData.password);
+      console.log("Signed up:", user);
+    } catch (err) {
+      console.error("Signup failed:", err.message);
+    }
       // optionally save to localStorage or a mock store here
       setIsLoading(false)
       navigate('/dashboard')
-    }, 700)
+    
   }
 
   const handleGoogleAuth = () => {

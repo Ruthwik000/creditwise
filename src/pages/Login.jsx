@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Link, useNavigate } from 'react-router-dom'
 import { Mail, Lock, Eye, EyeOff, ArrowRight, Sparkles } from 'lucide-react'
-
+import { login } from "../components/auth/loginAuth";
+import { loginWithGoogle } from "../components/auth/googleAuth";
 
 // Animation variants
 const containerVariants = {
@@ -36,11 +37,18 @@ const Login = () => {
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async(e) => {
     e.preventDefault()
     setError('')
     setIsLoading(true)
     // Mock sign-in flow for local development (no Firebase)
+    console.log(formData)
+     try {
+      const user = await login(formData.email,formData.password);
+      console.log("Logged in:", user);
+    } catch (err) {
+      console.error("Login failed:", err.message);
+    }
     setTimeout(() => {
       // rudimentary validation
       if (!formData.email || !formData.password) {
@@ -53,10 +61,15 @@ const Login = () => {
     }, 600)
   }
 
-  const handleGoogleAuth = () => {
+  const handleGoogleAuth = async() => {
   // Mock Google flow (no external auth)
-  console.log('Mock Google auth clicked')
-  navigate('/dashboard')
+   try {
+      const user = await loginWithGoogle();
+      console.log("Google login success:", user);
+      navigate('/dashboard')
+    } catch (err) {
+      console.error("Google login failed:", err.message);
+    }
   }
 
   return (
